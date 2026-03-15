@@ -31,6 +31,7 @@ def discover_nodes(callback):
     def scan():
         try:
             local_ip = get_local_ip()
+            print(f"DISCOVERY: Local IP detected as {local_ip}")
             found_nodes = []
             
             # Додаємо localhost відразу
@@ -39,6 +40,7 @@ def discover_nodes(callback):
 
             if local_ip != '127.0.0.1':
                 prefix = '.'.join(local_ip.split('.')[:-1]) + '.'
+                print(f"DISCOVERY: Scanning subnet {prefix}0/24")
                 # Зменшуємо кількість потоків для Android
                 with ThreadPoolExecutor(max_workers=20) as executor:
                     futures = {executor.submit(check_port, prefix + str(i), 8000): str(i) for i in range(1, 255)}
@@ -46,11 +48,13 @@ def discover_nodes(callback):
                         try:
                             if future.result():
                                 node_ip = prefix + futures[future]
+                                print(f"DISCOVERY: Found node at {node_ip}")
                                 if node_ip != local_ip:
                                     found_nodes.append({"name": f"Node {node_ip}", "ip": node_ip})
-                        except Exception:
+                        except Exception as e:
                             continue
             
+            print(f"DISCOVERY: Scan complete. Found {len(found_nodes)} nodes.")
             callback(found_nodes)
         except Exception as e:
             print(f"Scan error: {e}")
