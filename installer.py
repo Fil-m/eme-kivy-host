@@ -5,8 +5,8 @@ import subprocess
 import sys
 
 def download_file(url, local_path, progress_callback=None):
-    """Завантажує файл з прогресом."""
-    response = requests.get(url, stream=True)
+    """Завантажує файл з прогресом (з пропуском перевірки SSL для самопідписаних сертифікатів)."""
+    response = requests.get(url, stream=True, verify=False)
     total_size = int(response.headers.get('content-length', 0))
     downloaded = 0
     

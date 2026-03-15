@@ -86,7 +86,7 @@ class EmeHostUI(BoxLayout):
         threading.Thread(target=self.install_thread).start()
 
     def install_thread(self):
-        url = f"http://{self.found_node_ip}:8000/api/clone/bundle/"
+        url = f"https://{self.found_node_ip}:8000/api/clone/bundle/"
         try:
             # 1. Download
             installer.download_file(url, TEMP_ZIP, self.on_download_progress)
