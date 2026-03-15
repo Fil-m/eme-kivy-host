@@ -4,54 +4,56 @@ from concurrent.futures import ThreadPoolExecutor
 
 def get_local_ip():
     """Отримує локальну IP-адресу пристрою."""
-    s = socket.socket(socket.socket.AF_INET, socket.socket.SOCK_DGRAM)
     try:
-        # Не обов'язково підключатися реально, просто щоб отримати інтерфейс
+        s = socket.socket(socket.socket.AF_INET, socket.socket.SOCK_DGRAM)
         s.connect(('8.8.8.8', 1))
         ip = s.getsockname()[0]
-    except Exception:
-        ip = '127.0.0.1'
-    finally:
         s.close()
-    return ip
+        return ip
+    except Exception as e:
+        print(f"Error getting local IP: {e}")
+        return '127.0.0.1'
 
-def check_port(ip, port, timeout=0.5):
+def check_port(ip, port, timeout=0.3):
     """Перевіряє чи відкритий порт на вказаній IP."""
-    with socket.socket(socket.socket.AF_INET, socket.socket.SOCK_STREAM) as s:
-        s.settimeout(timeout)
-        try:
-            s.connect((ip, port))
-            return True
-        except:
-            return False
+    try:
+        with socket.socket(socket.socket.AF_INET, socket.socket.SOCK_STREAM) as s:
+            s.settimeout(timeout)
+            result = s.connect_ex((ip, port))
+            return result == 0
+    except Exception:
+        return False
 
 def discover_nodes(callback):
     """
     Сканує локальну підмережу на наявність вузлів з відкритим портом 8000.
-    Викликає callback(node_list) по завершенню.
     """
-    local_ip = get_local_ip()
-    if local_ip == '127.0.0.1':
-        callback([])
-        return
-
-    # Визначаємо підмережу (наприклад, 192.168.1.0/24)
-    prefix = '.'.join(local_ip.split('.')[:-1]) + '.'
-    found_nodes = []
-
     def scan():
-        with ThreadPoolExecutor(max_workers=50) as executor:
-            futures = {executor.submit(check_port, prefix + str(i), 8000): str(i) for i in range(1, 255)}
-            for future in futures:
-                ip_suffix = futures[future]
-                if future.result():
-                    node_ip = prefix + ip_suffix
-                    found_nodes.append({"name": f"Node {node_ip}", "ip": node_ip})
-        
-        # Додаємо localhost для тестів
-        if check_port('127.0.0.1', 8000):
-            found_nodes.append({"name": "Local Node", "ip": "127.0.0.1"})
+        try:
+            local_ip = get_local_ip()
+            found_nodes = []
             
-        callback(found_nodes)
+            # Додаємо localhost відразу
+            if check_port('127.0.0.1', 8000):
+                found_nodes.append({"name": "Local Node (127.0.0.1)", "ip": "127.0.0.1"})
 
-    threading.Thread(target=scan).start()
+            if local_ip != '127.0.0.1':
+                prefix = '.'.join(local_ip.split('.')[:-1]) + '.'
+                # Зменшуємо кількість потоків для Android
+                with ThreadPoolExecutor(max_workers=20) as executor:
+                    futures = {executor.submit(check_port, prefix + str(i), 8000): str(i) for i in range(1, 255)}
+                    for future in futures:
+                        try:
+                            if future.result():
+                                node_ip = prefix + futures[future]
+                                if node_ip != local_ip:
+                                    found_nodes.append({"name": f"Node {node_ip}", "ip": node_ip})
+                        except Exception:
+                            continue
+            
+            callback(found_nodes)
+        except Exception as e:
+            print(f"Scan error: {e}")
+            callback([])
+
+    threading.Thread(target=scan, daemon=True).start()
