@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 def get_local_ip():
     """Отримує локальну IP-адресу пристрою."""
     try:
-        s = socket.socket(socket.socket.AF_INET, socket.socket.SOCK_DGRAM)
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(('8.8.8.8', 1))
         ip = s.getsockname()[0]
         s.close()
@@ -17,7 +17,7 @@ def get_local_ip():
 def check_port(ip, port, timeout=0.3):
     """Перевіряє чи відкритий порт на вказаній IP."""
     try:
-        with socket.socket(socket.socket.AF_INET, socket.socket.SOCK_STREAM) as s:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(timeout)
             result = s.connect_ex((ip, port))
             return result == 0
