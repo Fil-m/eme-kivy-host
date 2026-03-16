@@ -8,6 +8,7 @@ from kivy.uix.button import Button
 from kivy.uix.progressbar import ProgressBar
 from kivy.clock import Clock
 from kivy.utils import platform
+from kivy.uix.textinput import TextInput
 
 import discovery
 import installer
@@ -47,9 +48,22 @@ class EmeHostUI(BoxLayout):
         self.progress = ProgressBar(max=100, value=0)
         self.add_widget(self.progress)
 
+        # Ручне введення IP
+        self.manual_ip_input = TextInput(
+            text=discovery.get_local_ips()[0], 
+            hint_text="Введіть IP комп'ютера (напр. 10.29.244.43)",
+            multiline=False,
+            size_hint=(1, 0.15)
+        )
+        self.add_widget(self.manual_ip_input)
+
         self.action_btn = Button(text="Шукати майстер-ноду", size_hint=(1, 0.2))
         self.action_btn.bind(on_press=self.start_discovery)
         self.add_widget(self.action_btn)
+        
+        self.manual_btn = Button(text="Використати введений IP", size_hint=(1, 0.15))
+        self.manual_btn.bind(on_press=self.use_manual_ip)
+        self.add_widget(self.manual_btn)
         
         self.mesh_label = Label(text="Mesh Node: Initializing...", font_size='14sp', color=(0.8, 0.8, 0.8, 1))
         self.add_widget(self.mesh_label)
@@ -57,8 +71,19 @@ class EmeHostUI(BoxLayout):
         Clock.schedule_once(self.init_mesh, 1)
 
     def init_mesh(self, dt):
-        self.mesh_label.text = f"Mesh Node: ACTIVE (Local IP: {discovery.get_local_ip()})"
+        ips = discovery.get_local_ips()
+        self.mesh_label.text = f"Mesh Node: ACTIVE (IPs: {', '.join(ips)})"
         self.mesh_label.color = (0, 1, 0, 1)
+
+    def use_manual_ip(self, instance):
+        ip = self.manual_ip_input.text.strip()
+        if ip:
+            self.found_node_ip = ip
+            self.info_label.text = f"Використовую IP: {ip}\nНатисніть Клонувати."
+            self.action_btn.text = "Клонувати систему"
+            self.action_btn.disabled = False
+            self.action_btn.unbind(on_press=self.start_discovery)
+            self.action_btn.bind(on_press=self.begin_install)
 
     def start_discovery(self, instance):
         self.info_label.text = "Сканування мережі (порт 8000)..."
