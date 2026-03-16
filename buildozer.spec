@@ -7,7 +7,7 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 1.0.0
 
 # Requirements
-requirements = python3,kivy,django,djangorestframework,requests,certifi,chardet,idna,urllib3,pillow,openssl,pyjnius
+requirements = python3,kivy,django,djangorestframework,requests,certifi,chardet,idna,urllib3,pillow,openssl,pyjnius,asgiref,sqlparse,tzdata
 
 orientation = portrait
 osx.python_version = 3
