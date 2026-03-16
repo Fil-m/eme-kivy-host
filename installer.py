@@ -44,15 +44,39 @@ def setup_django(source_dir, data_dir):
     Налаштовує оточення Django та запускає міграції.
     DATA_DIR передається як змінна оточення.
     """
-    env = os.environ.copy()
-    env['EME_DATA_DIR'] = data_dir
+    import os
+    import sys
     
-    # Спроба запустити міграції
+    # Додаємо шлях до сорців у PYTHONPATH
+    if source_dir not in sys.path:
+        sys.path.insert(0, source_dir)
+        
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'eme.settings')
+    os.environ['EME_DATA_DIR'] = data_dir
+    
     try:
-        manage_path = os.path.join(source_dir, 'manage.py')
-        # На Android ми використовуємо sys.executable
-        subprocess.run([sys.executable, manage_path, 'migrate'], env=env, check=True)
+        from django.core.management import execute_from_command_line
+        print("INSTALLER: Running migrations in-process...")
+        execute_from_command_line([sys.argv[0], 'migrate', '--noinput'])
         return True
     except Exception as e:
         print(f"Migration error: {e}")
         return False
+
+def run_server(source_dir, data_dir, port=8000):
+    """Запускає Django сервер у поточному процесі (блокує потік)."""
+    import os
+    import sys
+    
+    if source_dir not in sys.path:
+        sys.path.insert(0, source_dir)
+        
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'eme.settings')
+    os.environ['EME_DATA_DIR'] = data_dir
+    
+    try:
+        from django.core.management import execute_from_command_line
+        print(f"SERVER: Starting core at port {port}...")
+        execute_from_command_line([sys.argv[0], 'runserver', '--noreload', '--nothreading', f'0.0.0.0:{port}'])
+    except Exception as e:
+        print(f"Server error: {e}")

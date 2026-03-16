@@ -143,10 +143,32 @@ class EmeHostUI(BoxLayout):
             Clock.schedule_once(lambda dt: setattr(self.progress, 'value', percent))
 
     def on_install_complete(self, dt):
-        self.info_label.text = "EME OS успішно встановлено!"
-        self.action_btn.text = "Запустити систему"
+        self.status_label.text = "EME OS Встановлено!"
+        self.info_label.text = "Система готова до запуску.\nНатисніть кнопку нижче."
+        self.action_btn.text = "ЗАПУСТИТИ СИСТЕМУ"
+        self.action_btn.background_color = (0, 0.7, 0, 1)
         self.action_btn.disabled = False
-        # Тут можна додати запуск WebView
+        self.action_btn.unbind(on_press=self.begin_install)
+        self.action_btn.bind(on_press=self.launch_system)
+
+    def launch_system(self, instance):
+        self.info_label.text = "Запуск локального сервера...\nЗачекайте кілька секунд."
+        self.action_btn.disabled = True
+        # Запускаємо сервер у фоновому потоці
+        threading.Thread(target=self.run_server_thread, daemon=True).start()
+        # Даємо серверу 5 секунд на старт і відкриваємо браузер
+        Clock.schedule_once(self.open_browser, 5)
+
+    def run_server_thread(self):
+        print("UI: Starting Django server thread...")
+        installer.run_server(SOURCE_DIR, DATA_DIR, port=8000)
+
+    def open_browser(self, dt):
+        import webbrowser
+        self.info_label.text = "Відкриваю браузер..."
+        webbrowser.open('http://127.0.0.1:8000')
+        self.action_btn.disabled = False
+        self.action_btn.text = "ПЕРЕЙТИ ДО EME OS"
 
     def on_error(self, message):
         self.info_label.text = message
