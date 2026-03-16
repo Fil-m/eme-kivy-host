@@ -4,20 +4,28 @@ import requests
 import subprocess
 import sys
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 def download_file(url, local_path, progress_callback=None):
     """Завантажує файл з прогресом (з пропуском перевірки SSL для самопідписаних сертифікатів)."""
-    response = requests.get(url, stream=True, verify=False)
-    total_size = int(response.headers.get('content-length', 0))
-    downloaded = 0
-    
-    with open(local_path, 'wb') as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            if chunk:
-                f.write(chunk)
-                downloaded += len(chunk)
-                if progress_callback:
-                    progress_callback(downloaded, total_size)
-    return True
+    try:
+        response = requests.get(url, stream=True, verify=False, timeout=30)
+        response.raise_for_status()
+        total_size = int(response.headers.get('content-length', 0))
+        downloaded = 0
+        
+        with open(local_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    if progress_callback:
+                        progress_callback(downloaded, total_size)
+        return True
+    except Exception as e:
+        print(f"Download error: {e}")
+        raise e
 
 def install_package(zip_path, extract_to):
     """Розпаковує ZIP та виконує базове налаштування."""

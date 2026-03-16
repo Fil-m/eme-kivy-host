@@ -79,40 +79,44 @@ class EmeHostUI(BoxLayout):
         ip = self.manual_ip_input.text.strip()
         if ip:
             self.found_node_ip = ip
-            self.info_label.text = f"Використовую IP: {ip}\nНатисніть Клонувати."
+            self.info_label.text = f"Використовується: {ip}\n(Натисніть Клонувати)"
             self.action_btn.text = "Клонувати систему"
             self.action_btn.disabled = False
             self.action_btn.unbind(on_press=self.start_discovery)
+            self.action_btn.unbind(on_press=self.begin_install)
             self.action_btn.bind(on_press=self.begin_install)
 
     def start_discovery(self, instance):
-        self.info_label.text = "Сканування мережі (порт 8000)..."
+        self.info_label.text = "Сканування мережі..."
         self.action_btn.disabled = True
-        discovery.discover_nodes(self.on_discovery_done)
+        discovery.discover_nodes(self.on_discovery_result)
 
-    def on_discovery_done(self, nodes):
-        Clock.schedule_once(lambda dt: self.ui_update_nodes(nodes))
+    def on_discovery_result(self, nodes):
+        Clock.schedule_once(lambda dt: self._update_discovery_ui(nodes))
 
-    def ui_update_nodes(self, nodes):
+    def _update_discovery_ui(self, nodes):
         self.action_btn.disabled = False
         if nodes:
-            node = nodes[0] # Беремо першу знайдену
+            node = nodes[0]
             self.found_node_ip = node['ip']
             self.info_label.text = f"Знайдено: {node['name']}\nГотовий до клонування."
             self.action_btn.text = "Клонувати систему"
             self.action_btn.unbind(on_press=self.start_discovery)
+            self.action_btn.unbind(on_press=self.begin_install)
             self.action_btn.bind(on_press=self.begin_install)
         else:
-            self.info_label.text = "Нод не знайдено. Спробуйте ще раз."
+            self.info_label.text = "Сервер не знайдено.\nПеревірте IP або спробуйте ще раз."
+            self.action_btn.text = "Шукати майстер-ноду"
 
     def begin_install(self, instance):
         self.action_btn.disabled = True
         self.info_label.text = "Завантаження компонентів..."
-        threading.Thread(target=self.install_thread).start()
+        threading.Thread(target=self.install_thread, daemon=True).start()
 
     def install_thread(self):
         url = f"https://{self.found_node_ip}:8000/api/clone/bundle/"
         try:
+            print(f"INSTALLER: Starting download from {url}")
             # 1. Download
             installer.download_file(url, TEMP_ZIP, self.on_download_progress)
             
@@ -122,14 +126,16 @@ class EmeHostUI(BoxLayout):
             
             if success:
                 # 3. Migrate
-                Clock.schedule_once(lambda dt: setattr(self.info_label, 'text', "Налаштування бази даних..."))
+                Clock.schedule_once(lambda dt: setattr(self.info_label, 'text', "Налаштування..."))
                 installer.setup_django(SOURCE_DIR, DATA_DIR)
                 Clock.schedule_once(self.on_install_complete)
             else:
                 Clock.schedule_once(lambda dt: self.on_error(f"Помилка розпакування: {msg}"))
                 
         except Exception as e:
-            Clock.schedule_once(lambda dt: self.on_error(f"Помилка завантаження: {str(e)}"))
+            print(f"INSTALLER: Critical error: {e}")
+            error_msg = str(e)
+            Clock.schedule_once(lambda dt: self.on_error(f"Помилка: {error_msg}"))
 
     def on_download_progress(self, downloaded, total):
         if total > 0:

@@ -61,7 +61,7 @@ def discover_nodes(callback):
                 processed_prefixes.add(prefix)
                 
                 print(f"DISCOVERY: Scanning subnet {prefix}0/24")
-                with ThreadPoolExecutor(max_workers=50) as executor:
+                with ThreadPoolExecutor(max_workers=10) as executor:
                     futures = {executor.submit(check_port, prefix + str(i), 8000): str(i) for i in range(1, 255)}
                     for future in futures:
                         try:
