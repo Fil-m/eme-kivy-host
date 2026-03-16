@@ -24,6 +24,7 @@ else:
 DATA_DIR = os.path.join(BASE_PATH, 'data')
 SOURCE_DIR = os.path.join(BASE_PATH, 'source')
 TEMP_ZIP = os.path.join(BASE_PATH, 'update.zip')
+IP_CONFIG = os.path.join(BASE_PATH, 'last_ip.txt')
 
 os.makedirs(DATA_DIR, exist_ok=True)
 os.makedirs(SOURCE_DIR, exist_ok=True)
@@ -34,34 +35,41 @@ class EmeHostUI(BoxLayout):
         self.orientation = 'vertical'
         self.spacing = 10
         self.padding = 20
+        self.found_node_ip = None
 
-        # Ініціалізація Mesh Node
+        # Ініціалізація Mesh Node (Relay)
         self.mesh = mesh_node.MeshNode(port=8001)
         self.mesh.start()
 
-        self.status_label = Label(text="EME Dynamic Host", font_size='24sp', bold=True)
+        self.status_label = Label(text="EME Dynamic Host v2.9", font_size='24sp', bold=True)
         self.add_widget(self.status_label)
 
-        self.info_label = Label(text="Статус: Очікування...", font_size='16sp')
+        self.info_label = Label(text="Очікування підключення...", font_size='16sp', halign='center')
         self.add_widget(self.info_label)
 
         self.progress = ProgressBar(max=100, value=0)
         self.add_widget(self.progress)
 
-        # Ручне введення IP
+        # Ручне введення IP з пам'яттю
+        last_ip = "10.29.244.43"
+        if os.path.exists(IP_CONFIG):
+            with open(IP_CONFIG, 'r') as f:
+                last_ip = f.read().strip()
+
         self.manual_ip_input = TextInput(
-            text=discovery.get_local_ips()[0], 
-            hint_text="Введіть IP комп'ютера (напр. 10.29.244.43)",
+            text=last_ip, 
+            hint_text="IP комп'ютера (напр. 10.29.244.43)",
             multiline=False,
-            size_hint=(1, 0.15)
+            size_hint=(1, 0.15),
+            font_size='18sp'
         )
         self.add_widget(self.manual_ip_input)
 
-        self.action_btn = Button(text="Шукати майстер-ноду", size_hint=(1, 0.2))
+        self.action_btn = Button(text="Шукати майстер-ноду", size_hint=(1, 0.2), background_color=(0.2, 0.2, 0.8, 1))
         self.action_btn.bind(on_press=self.start_discovery)
         self.add_widget(self.action_btn)
         
-        self.manual_btn = Button(text="Використати введений IP", size_hint=(1, 0.15))
+        self.manual_btn = Button(text="Зберегти та використати IP", size_hint=(1, 0.15))
         self.manual_btn.bind(on_press=self.use_manual_ip)
         self.add_widget(self.manual_btn)
         
@@ -78,10 +86,15 @@ class EmeHostUI(BoxLayout):
     def use_manual_ip(self, instance):
         ip = self.manual_ip_input.text.strip()
         if ip:
+            # Зберігаємо IP для пам'яті
+            with open(IP_CONFIG, 'w') as f:
+                f.write(ip)
+                
             self.found_node_ip = ip
             self.info_label.text = f"Використовується: {ip}\n(Натисніть Клонувати)"
             self.action_btn.text = "Клонувати систему"
             self.action_btn.disabled = False
+            self.action_btn.background_color = (0.2, 0.8, 0.2, 1)
             self.action_btn.unbind(on_press=self.start_discovery)
             self.action_btn.unbind(on_press=self.begin_install)
             self.action_btn.bind(on_press=self.begin_install)

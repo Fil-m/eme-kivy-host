@@ -7,7 +7,7 @@ source.include_exts = py,png,jpg,kv,atlas
 version = 1.0.0
 
 # Requirements
-requirements = python3,kivy,django,djangorestframework,requests,certifi,chardet,idna,urllib3,pillow,openssl,pyjnius,asgiref,sqlparse,tzdata
+requirements = python3,kivy,django,djangorestframework,requests,certifi,chardet,idna,urllib3,pillow,openssl,pyjnius,asgiref,sqlparse,tzdata,waitress
 
 orientation = portrait
 osx.python_version = 3
@@ -15,7 +15,7 @@ osx.kivy_version = 1.9.1
 fullscreen = 0
 
 # Android specific
-android.permissions = INTERNET,ACCESS_NETWORK_STATE,FOREGROUND_SERVICE,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE
+android.permissions = INTERNET,ACCESS_NETWORK_STATE,FOREGROUND_SERVICE,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,CHANGE_WIFI_MULTICAST_STATE
 android.api = 33
 android.minapi = 24
 android.sdk = 33

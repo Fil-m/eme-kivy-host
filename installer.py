@@ -64,7 +64,7 @@ def setup_django(source_dir, data_dir):
         return False
 
 def run_server(source_dir, data_dir, port=8000):
-    """Запускає Django сервер у поточному процесі (блокує потік)."""
+    """Запускає Django сервер через Waitress (стабільніше для Android)."""
     import os
     import sys
     
@@ -75,8 +75,17 @@ def run_server(source_dir, data_dir, port=8000):
     os.environ['EME_DATA_DIR'] = data_dir
     
     try:
-        from django.core.management import execute_from_command_line
-        print(f"SERVER: Starting core at port {port}...")
-        execute_from_command_line([sys.argv[0], 'runserver', '--noreload', '--nothreading', f'0.0.0.0:{port}'])
+        import django
+        django.setup()
+        
+        from django.core.handlers.wsgi import WSGIHandler
+        from waitress import serve
+        
+        print(f"SERVER: Starting Waitress at port {port}...")
+        application = WSGIHandler()
+        serve(application, host='0.0.0.0', port=port, threads=4)
+        
     except Exception as e:
         print(f"Server error: {e}")
+        import traceback
+        traceback.print_exc()
